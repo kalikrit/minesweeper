@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сапер</title>
+<style>
+  body { 
+    font-family: Arial, sans-serif; 
+    text-align: center; 
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  #settings { 
+    margin-bottom: 20px; 
+    padding: 10px;
+    background-color: #f9f9f9;
+  }
+  input { 
+    margin: 5px; 
+    padding: 5px; 
+    width: 80px;
+  }
+  table { 
+    border-collapse: collapse; 
+    margin: 20px auto; 
+    max-width: 90vw;
+  }
+  td { 
+    width: 30px; 
+    height: 30px; 
+    border: 1px solid #000; 
+    text-align: center; 
+  }
+  .mine { background-color: red; }
+  .flag { background-color: green; }
+  .empty { background-color: lightblue; }
+  .message { 
+    font-size: 18px; 
+    font-weight: bold; 
+    margin: 10px 0; 
+  }
+  .win { color: green; }
+  .lose { color: red; }
+  #controls { 
+    margin-top: 10px; 
+  }
+  #moves { 
+    margin-top: 10px; 
+    font-weight: bold; 
+    font-size: 16px;
+  }
+  button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 16px;
+  }
+  @media (max-width: 600px) {
+    td { 
+      width: 25px; 
+      height: 25px; 
+    }
+    input { 
+      width: 60px; 
+      font-size: 14px; 
+    }
+    button {
+      font-size: 14px;
+      padding: 8px 16px;
+    }
+    .message {
+      font-size: 16px;
+    }
+    #moves {
+      font-size: 14px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="settings">
+  <label>Размер поля: <input type="number" id="size" value="4" min="4"></label><br>
+  <label>Количество мин: <input type="number" id="mines" value="3" min="1"></label><br>
+  <button onclick="startGame()">Начать игру</button>
+</div>
+
+<div id="game" style="display:none;">
+  <table id="board"></table>
+  <div id="message"></div>
+  <div id="moves">Ходов: 0</div>
+  <div id="controls">
+    <button id="restart" onclick="startGame()" style="display:none;">Играть снова</button>
+    <button id="settingsButton" onclick="showSettings()" style="display:none;">Настройки</button>
+  </div>
+</div>
+
+<script>
+let size = 4;
+let mineCount = 3;
+let board = [];
+let revealed = [];
+let flags = [];
+let mines = [];
+let moves = 0;
+
+function startGame() {
+  size = parseInt(document.getElementById('size').value) || 4;
+  mineCount = parseInt(document.getElementById('mines').value) || 3;
+  if (mineCount >= size * size) mineCount = size * size - 1;
+  
+  board = Array(size).fill().map(() => Array(size).fill(0));
+  revealed = Array(size).fill().map(() => Array(size).fill(false));
+  flags = Array(size).fill().map(() => Array(size).fill(false));
+  mines = [];
+  moves = 0;
+  
+  placeMines();
+  calculateNumbers();
+  renderBoard();
+  
+  document.getElementById('settings').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+  document.getElementById('message').innerText = '';
+  document.getElementById('moves').innerText = 'Ходов: 0';
+  document.getElementById('restart').style.display = 'none';
+  document.getElementById('settingsButton').style.display = 'inline-block';
+}
+
+function placeMines() {
+  while(mines.length < mineCount){
+    let x = Math.floor(Math.random() * size);
+    let y = Math.floor(Math.random() * size);
+    if(!mines.some(m => m.x === x && m.y === y)){
+      mines.push({x, y});
+      board[y][x] = 'M';
+    }
+  }
+}
+
+function calculateNumbers(){
+  for(let m of mines){
+    for(let dy=-1;dy<=1;dy++){
+      for(let dx=-1;dx<=1;dx++){
+        let nx=m.x+dx;
+        let ny=m.y+dy;
+        if(nx>=0 && nx<size && ny>=0 && ny<size && board[ny][nx]!='M'){
+          board[ny][nx]++;
+        }
+      }
+    }
+  }
+}
+
+function renderBoard(){
+  let table = document.getElementById('board');
+  table.innerHTML = '';
+  for(let y=0;y<size;y++){
+    let row = document.createElement('tr');
+    for(let x=0;x<size;x++){
+      let cell = document.createElement('td');
+      cell.dataset.x = x;
+      cell.dataset.y = y;
+      cell.onclick = () => revealCell(x, y);
+      cell.oncontextmenu = (e) => { e.preventDefault(); toggleFlag(x, y); };
+      row.appendChild(cell);
+    }
+    table.appendChild(row);
+  }
+}
+
+function revealCell(x, y){
+  if(revealed[y][x] || flags[y][x]) return;
+  moves++;
+  updateMoves();
+  revealed[y][x] = true;
+  let cell = document.querySelector(`td[data-x="${x}"][data-y="${y}"]`);
+  if(board[y][x] === 'M'){
+    cell.classList.add('mine');
+    showMessage('lose', 'Вы проиграли');
+    showAllMines();
+    return;
+  }
+  if(board[y][x] > 0){
+    cell.innerText = board[y][x];
+    cell.classList.add('empty');
+  }else{
+    cell.classList.add('empty');
+    clearEmptyCells(x, y);
+  }
+  checkWin();
+}
+
+function toggleFlag(x, y){
+  if(revealed[y][x]) return;
+  let cell = document.querySelector(`td[data-x="${x}"][data-y="${y}"]`);
+  flags[y][x] = !flags[y][x];
+  if(flags[y][x]){
+    cell.classList.add('flag');
+    cell.innerText = '!';
+  }else{
+    cell.classList.remove('flag');
+    cell.innerText = '';
+  }
+}
+
+function clearEmptyCells(x, y){
+  let queue = [[x, y]];
+  while(queue.length > 0){
+    let [cx, cy] = queue.shift();
+    for(let dy=-1;dy<=1;dy++){
+      for(let dx=-1;dx<=1;dx++){
+        let nx=cx+dx;
+        let ny=cy+dy;
+        if(nx>=0 && nx<size && ny>=0 && ny<size && !revealed[ny][nx] && !flags[ny][nx]){
+          revealed[ny][nx] = true;
+          let cell = document.querySelector(`td[data-x="${nx}"][data-y="${ny}"]`);
+          if(board[ny][nx] === 'M'){
+            cell.classList.add('mine');
+            continue;
+          }
+          if(board[ny][nx] > 0){
+            cell.innerText = board[ny][nx];
+            cell.classList.add('empty');
+          }else{
+            cell.classList.add('empty');
+            queue.push([nx, ny]);
+          }
+        }
+      }
+    }
+  }
+}
+
+function checkWin(){
+  let allRevealed = true;
+  for(let y=0;y<size;y++){
+    for(let x=0;x<size;x++){
+      if(board[y][x] !== 'M' && !revealed[y][x]){
+        allRevealed = false;
+        break;
+      }
+    }
+    if(!allRevealed) break;
+  }
+  if(allRevealed){
+    showMessage('win', `Победа! Вы выиграли за ${moves} ходов!`);
+    showAllMines();
+  }
+}
+
+function showAllMines(){
+  for(let m of mines){
+    let cell = document.querySelector(`td[data-x="${m.x}"][data-y="${m.y}"]`);
+    if(!revealed[m.y][m.x]){
+      cell.classList.add('mine');
+    }
+  }
+}
+
+function showMessage(type, message){
+  let msgDiv = document.getElementById('message');
+  msgDiv.innerText = message;
+  msgDiv.className = type === 'win' ? 'message win' : 'message lose';
+  document.getElementById('restart').style.display = 'inline-block';
+}
+
+function showSettings(){
+  document.getElementById('settings').style.display = 'block';
+  document.getElementById('game').style.display = 'none';
+}
+
+function updateMoves(){
+  document.getElementById('moves').innerText = `Ходов: ${moves}`;
+}
+</script>
+
+</body>
+</html>
