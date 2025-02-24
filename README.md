@@ -1,2 +1,3 @@
 # minesweeper
-Minesweeper game
+Minesweeper game  
+on HTML and JavaScript
