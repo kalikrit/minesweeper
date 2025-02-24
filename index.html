@@ -16,6 +16,7 @@
     margin-bottom: 20px; 
     padding: 10px;
     background-color: #f9f9f9;
+    width: 100%;
   }
   input { 
     margin: 5px; 
@@ -24,12 +25,12 @@
   }
   table { 
     border-collapse: collapse; 
-    margin: 20px auto; 
-    max-width: 90vw;
+    margin: 20px auto 0;
+    width: 95vw;
+    max-width: 100%;
+    table-layout: fixed;
   }
   td { 
-    width: 30px; 
-    height: 30px; 
     border: 1px solid #000; 
     text-align: center; 
   }
@@ -40,26 +41,30 @@
     font-size: 18px; 
     font-weight: bold; 
     margin: 10px 0; 
+    width: 95vw;
   }
   .win { color: green; }
   .lose { color: red; }
   #controls { 
     margin-top: 10px; 
+    width: 95vw;
   }
   #moves { 
     margin-top: 10px; 
     font-weight: bold; 
     font-size: 16px;
+    width: 95vw;
   }
   button {
     padding: 10px 20px;
     margin: 5px;
     font-size: 16px;
+    width: 45%;
   }
   @media (max-width: 600px) {
     td { 
-      width: 25px; 
-      height: 25px; 
+      width: calc(100% / var(--cell-count)); 
+      height: calc(100% / var(--cell-count)); 
     }
     input { 
       width: 60px; 
@@ -109,17 +114,24 @@ function startGame() {
   size = parseInt(document.getElementById('size').value) || 4;
   mineCount = parseInt(document.getElementById('mines').value) || 3;
   if (mineCount >= size * size) mineCount = size * size - 1;
-  
+
+  // Динамически устанавливаем размер ячеек
+  const cellSize = Math.floor((window.innerWidth * 0.95) / size);
+  document.querySelectorAll('td').forEach(cell => {
+    cell.style.width = `${cellSize}px`;
+    cell.style.height = `${cellSize}px`;
+  });
+
   board = Array(size).fill().map(() => Array(size).fill(0));
   revealed = Array(size).fill().map(() => Array(size).fill(false));
   flags = Array(size).fill().map(() => Array(size).fill(false));
   mines = [];
   moves = 0;
-  
+
   placeMines();
   calculateNumbers();
   renderBoard();
-  
+
   document.getElementById('settings').style.display = 'none';
   document.getElementById('game').style.display = 'block';
   document.getElementById('message').innerText = '';
@@ -168,6 +180,13 @@ function renderBoard(){
     }
     table.appendChild(row);
   }
+
+  // Применяем размер ячеек после рендера
+  const cellSize = Math.floor((window.innerWidth * 0.95) / size);
+  document.querySelectorAll('td').forEach(cell => {
+    cell.style.width = `${cellSize}px`;
+    cell.style.height = `${cellSize}px`;
+  });
 }
 
 function revealCell(x, y){
