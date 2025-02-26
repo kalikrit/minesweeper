@@ -6,6 +6,6 @@
 - при проигрыше выводится сообщение
 - отображаются две кнопки "Играть снова" и "Настройки"
 - игра адаптирована под мобильные устройства
-- игра опубликована на ![github.pages](https://kalikrit.github.io/minesweeper/) 
+- игра опубликована на: https://kalikrit.github.io/minesweeper/
 
 ![скриншот экрана проигрыша](https://github.com/kalikrit/minesweeper/blob/main/minesweeper.png)
